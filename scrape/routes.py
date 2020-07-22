@@ -28,7 +28,7 @@ def save():
     s=0
     if request.method == 'POST':
         domains=form.domain.data
-        for i in range(0,15):
+        for i in range(0,1):
             if i==0:
                 r = requests.get('https://www.indeed.com/jobs?q='+str(domains))
             else:

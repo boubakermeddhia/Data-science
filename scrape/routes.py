@@ -88,7 +88,7 @@ def save():
                     f=''
                     
                 try:
-                    donnee=data(post_name=str(a).decode('utf8'),href_post=str(b).decode('utf8'),name_company=str(c).decode('utf8'),href_company=str(m).decode('utf8'),location=str(e).decode('utf8'),salary=str(f).decode('utf8'),verif=str(v).decode('utf8'))
+                    donnee=data(post_name=str(a),href_post=str(b),name_company=str(c),href_company=str(m),location=str(e),salary=str(f),verif=str(v))
                     db.session.add(donnee)
                     db.session.commit()
                     s=s+1

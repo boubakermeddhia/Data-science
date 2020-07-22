@@ -86,10 +86,10 @@ def save():
                     f=y.find_all("span", class_="salary")[0].get_text()#salary
                 else:
                     f=''
-                
+            
+                donnee=data(post_name=str(a).decode('utf8'),href_post=str(b).decode('utf8'),name_company=str(c).decode('utf8'),href_company=str(m).decode('utf8'),location=str(e).decode('utf8'),salary=str(f).decode('utf8'),verif=str(v).decode('utf8'))
+                db.session.add(donnee)
                 try:
-                    data1=data(post_name=str(a).decode('utf8'),href_post=str(b).decode('utf8'),name_company=str(c).decode('utf8'),href_company=str(m).decode('utf8'),location=str(e).decode('utf8'),salary=str(f).decode('utf8'),verif=str(v).decode('utf8'))
-                    db.session.add(data1)
                     db.session.commit()
                     s=s+1
                 except:

@@ -5,6 +5,9 @@ from scrape.forms import ScrapeForm
 from scrape.models import data
 import requests
 from bs4 import BeautifulSoup
+from rq import Queue
+from scrape.worker import conn
+from utils import count_words_at_url
 
 
 
@@ -26,13 +29,14 @@ def about():
 def save():
     form = ScrapeForm()
     s=0
-    if request.method == 'POST':
+    if request.method=="POST":
+        q = Queue(connection=conn)
         domains=form.domain.data
-        for i in range(0,1):
+        for i in range(0,5):
             if i==0:
-                r = requests.get('https://www.indeed.com/jobs?q='+str(domains))
+                r = q.enqueue(count_words_at_url,'https://www.indeed.com/jobs?q='+str(domains))
             else:
-                r = requests.get('https://www.indeed.com/jobs?q='+str(domains)+'&start='+str(i*10))
+                r = q.enqueue(count_words_at_url, 'https://www.indeed.com/jobs?q='+str(domains)+'&start='+str(i*10))
             soup = BeautifulSoup(r.text,'html.parser')
             x=soup.find_all("div", class_="jobsearch-SerpJobCard unifiedRow row result")
             if len(x)==0:

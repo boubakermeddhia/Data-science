@@ -1,5 +1,5 @@
 import os
-from flask import render_template, url_for, flash, redirect, request, abort
+from flask import render_template, url_for, flash, redirect, request, abort,jsonify
 from scrape import app,db
 from scrape.forms import ScrapeForm
 from scrape.models import data
@@ -30,13 +30,14 @@ def save():
     form = ScrapeForm()
     s=0
     if request.method=="POST":
-        q = Queue(connection=conn)
+        
         domains=form.domain.data
         for i in range(0,5):
             if i==0:
-                r = q.enqueue(count_words_at_url,'https://www.indeed.com/jobs?q='+str(domains))
+                r = requests.get('https://www.indeed.com/jobs?q='+str(domains))
             else:
-                r = q.enqueue(count_words_at_url, 'https://www.indeed.com/jobs?q='+str(domains)+'&start='+str(i*10))
+                r = requests.get( 'https://www.indeed.com/jobs?q='+str(domains)+'&start='+str(i*10))
+                
             soup = BeautifulSoup(r.text,'html.parser')
             x=soup.find_all("div", class_="jobsearch-SerpJobCard unifiedRow row result")
             if len(x)==0:
@@ -102,4 +103,22 @@ def save():
         flash('Scrape is finished '+str(s)+' new added in '+str(domains)+' feed', 'success')
         return redirect(url_for('home'))
     return render_template('scrape.html', form=form)
+
+@app.route("/jso", methods=['GET', 'POST'])
+def jso():
+    if request.method=='GET':
+            posts1 = data.query.all()
+            l=[]
+            for i in range(len(posts1)):
+                l.append({"id":posts1[i].id,"post_name":posts1[i].post_name.replace('\n',''),"href_post":posts1[i].href_post,"name_company":posts1[i].name_company.replace('\n',''),"href_company":posts1[i].href_company,"location":posts1[i].location,"salary":posts1[i].salary.replace('\n','')})
+            return jsonify(l)
+
+@app.route("/mod/<int:n>&<int:v>", methods=['GET','POST'])
+def mod(n,v):
+    if request.method=='GET':
+        post=data.query.filter_by(id=n)[0]
+        post.post_name=v
+        db.session.add(post)
+        db.session.commit()
+        return redirect(url_for("jso"))        
 

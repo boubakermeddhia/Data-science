@@ -1,124 +1,161 @@
 import os
-from flask import render_template, url_for, flash, redirect, request, abort,jsonify
+import pandas as pd
+from flask import render_template, url_for, flash, redirect, request, abort, jsonify, send_from_directory,send_file
 from scrape import app,db
-from scrape.forms import ScrapeForm
 from scrape.models import data
 import requests
-from bs4 import BeautifulSoup
-from rq import Queue
-from scrape.worker import conn
-from utils import count_words_at_url
+import matplotlib.pyplot as plt
+from werkzeug.utils import secure_filename
+import sklearn
+from sklearn.svm import SVR
 
 
 
-def tohtml(x):
-    return "<html>\n<head></head>\n<body>\n"+str(x)+"</html>"
+ALLOWED_EXTENSIONS = {'csv'}
 
-@app.route("/home")
-def home():
-    page = request.args.get('page', 1, type=int)
-    posts = data.query.order_by(data.id.desc()).paginate(page=page, per_page=5)
-    return render_template('home.html', posts=posts)
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-@app.route("/about")
-def about():
-    return render_template('about.html')
+@app.route("/", methods=['GET','POST'])
+@app.route("/listingcsv", methods=['GET','POST'])
+def listingcsv():
+    base_url=os.getcwd()
+    file=os.listdir(base_url+'\scrape\static\csv')
+    return render_template('showcsv.html', file=file)
+@app.route("/showcsv", methods=['GET','POST'])
+def showcsv():
+    if request.method=='GET':
+        filename=request.args.get('filename')
+        moy=request.args.get('moy')
+        img=data.query.filter_by(name=filename.split('.csv')[0]).all()
+        if img is None:
+            dict2={}
+        else:
+            dict2={}
+            for i in range(len(img)):
+                dict2[i]=str(img[i]).split('=')[1].split(',')[0] 
+        dict={}
+        base_url=os.getcwd()
+        ds=pd.read_csv(base_url+'\scrape\static\csv\\'+filename)
+        header=ds.columns
 
-@app.route("/", methods=['GET', 'POST'])
-@app.route("/scrape", methods=['GET', 'POST'])
-def save():
-    form = ScrapeForm()
-    s=0
-    if request.method=="POST":
+        for i in range(len(ds.values)):
+            dict[i]=ds.values[i]
         
-        domains=form.domain.data
-        for i in range(0,5):
-            if i==0:
-                r = requests.get('https://www.indeed.com/jobs?q='+str(domains))
-            else:
-                r = requests.get( 'https://www.indeed.com/jobs?q='+str(domains)+'&start='+str(i*10))
-                
-            soup = BeautifulSoup(r.text,'html.parser')
-            x=soup.find_all("div", class_="jobsearch-SerpJobCard unifiedRow row result")
-            if len(x)==0:
-                flash('Please verify your entry', 'warning')
-                return redirect(url_for('save'))
-            if 1==1 :
-                for j in x:
-                   y=BeautifulSoup(tohtml(j), 'html.parser')
-                if y.find("h2", class_="title") is not None :
-                   a=y.find("h2", class_="title").get_text()#name_post
-                else:
-                   a=''
-                if y.find("a", class_="turnstileLink") is not None :
-                   v="https://www.indeed.com"+y.find_all("a",class_="turnstileLink")[0]['href']#href_post
-                   z=requests.get(v)
-                   if (z.status_code==200):
-                      if BeautifulSoup(z.text, 'html.parser').find("a") is not None:
-                        if len(BeautifulSoup(z.text, 'html.parser').find_all("a", class_="icl-Button--block"))!=0:
-                            b=BeautifulSoup(z.text, 'html.parser').find_all("a", class_="icl-Button--block")[0]['href']
-                        else:
-                            b=''
-                      else:
-                         b=''
-                   else:
-                         b=''
-                else:
-                    b=''
-                if BeautifulSoup(tohtml(y.find("span", class_="company")), 'html.parser').find("a") is not None :
-                    c=BeautifulSoup(tohtml(y.find("span", class_="company")), 'html.parser').find("a").get_text()#name_company
-                else:
-                    c=''
-                if BeautifulSoup(tohtml(y.find("span", class_="company")), 'html.parser').find("a") is not None:
-                    n=requests.get("https://www.indeed.com"+BeautifulSoup(tohtml(y.find("span", class_="company")), 'html.parser').find("a")['href'])#href_company
-                    if (n.status_code==200):
-                      if BeautifulSoup(n.text, 'html.parser').find("a") is not None:   
-                        if len(BeautifulSoup(n.text, 'html.parser').find_all("a", class_="cmp-CompanyLink"))!=0 :
-                         m=BeautifulSoup(n.text, 'html.parser').find_all("a", class_="cmp-CompanyLink")[0]['href']
-                        else:
-                         m=''
-                      else:
-                         m=''
-                    else:
-                         m=''
-                else:
-                    m=''
-                if y.find("span", class_="location") is not None :
-                    e=y.find_all("span", class_="location")[0].get_text()#location
-                else:
-                    e=''
-                if y.find("span", class_="salary") is not None:
-                    f=y.find_all("span", class_="salary")[0].get_text()#salary
-                else:
-                    f=''
-                    
-                try:
-                    donnee=data(post_name=str(a),href_post=str(b),name_company=str(c),href_company=str(m),location=str(e),salary=str(f),verif=str(v))
-                    db.session.add(donnee)
-                    db.session.commit()
-                    s=s+1
-                except:
-                    pass
-                   
-        flash('Scrape is finished '+str(s)+' new added in '+str(domains)+' feed', 'success')
-        return redirect(url_for('home'))
-    return render_template('scrape.html', form=form)
-
-@app.route("/jso", methods=['GET', 'POST'])
-def jso():
+    return render_template('csv.html', form=dict,file=filename.split('.csv')[0],head=header,dict2=dict2,moy=moy)
+@app.route("/savecsv", methods=['GET','POST'])
+def savecsv():   
     if request.method=='GET':
-            posts1 = data.query.all()
-            l=[]
-            for i in range(len(posts1)):
-                l.append({"id":posts1[i].id,"post_name":posts1[i].post_name.replace('\n',''),"href_post":posts1[i].href_post,"name_company":posts1[i].name_company.replace('\n',''),"href_company":posts1[i].href_company,"location":posts1[i].location,"salary":posts1[i].salary.replace('\n','')})
-            return jsonify(l)
+        l=[]
+        v=[]
+        w=[]
+        filename=request.args.get('filename')
+        operation=request.args.get('operation')
+        input1=request.args.get('input1')
+        input2=request.args.get('input2')
+        newcol=request.args.get('newcol')
+        base_url=os.getcwd()
+        ds=pd.read_csv(base_url+'\scrape\static\csv\\'+filename+'.csv')
+        for i in range(len(ds.loc[:,input1])):
+           l.append(ds.loc[:,input1][i])
+        for i in range(len(ds.loc[:,input2])):
+           v.append(ds.loc[:,input2][i])
+        if operation=='add':
+          for i in range(len(l)):
+           w.append(l[i]+v[i])
+        if operation=='divide':
+          for i in range(len(l)):
+           w.append(l[i]/v[i])
+        if operation=='multi':
+          for i in range(len(l)):
+           w.append(l[i]*v[i])
+        if operation=='sous':
+          for i in range(len(l)):
+           w.append(l[i]-v[i])
+        ds.insert(len(ds.columns),newcol,w) 
+        ds.to_csv(base_url+'\scrape\static\csv\\'+filename+'modified.csv',index = False)
 
-@app.route("/mod/<int:n>&<int:v>", methods=['GET','POST'])
-def mod(n,v):
-    if request.method=='GET':
-        post=data.query.filter_by(id=n)[0]
-        post.post_name=v
-        db.session.add(post)
+
+        plt.scatter([int(x.split('-')[2]) for x in ds.tail(15).loc[:,'Date']],[float(x) for x in ds.tail(15).loc[:,'High']])
+        plt.ylabel('High')
+        plt.xlabel('Date')
+        plt.xticks([x for x in range(1,31)])
+        plt.title('Date-High')
+        plt.savefig('./scrape/static/'+filename+'datehigh.png')
+        db.session.add(data(image=filename+'datehigh.png',name=filename+'modified'))
         db.session.commit()
-        return redirect(url_for("jso"))        
 
+    
+        plt.scatter([int(x.split('-')[2]) for x in ds.tail(15).loc[:,'Date']],[float(x) for x in ds.tail(15).loc[:,'Volume']]) 
+        plt.xlabel('Date')
+        plt.ylabel('Volume')
+        plt.xticks([x for x in range(1,31)])
+        plt.title('Date-Volume')
+        plt.savefig('./scrape/static/'+filename+'datevolume.png')
+        db.session.add(data(image=filename+'datevolume.png',name=filename+'modified'))
+        db.session.commit()
+
+    return redirect(url_for('showcsv',filename=filename+'modified.csv'))
+
+@app.route('/uploadcsv', methods=['GET', 'POST'])
+def upload_file():
+    if request.method == 'POST':
+        if 'file' not in request.files:
+            flash('No file part')
+            return redirect(request.url)
+        file = request.files['file']
+        if file.filename == '':
+            flash('No selected file')
+            return redirect(request.url)
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            return redirect(url_for('listingcsv'))
+
+@app.route('/predict', methods=['GET', 'POST'])
+def predict():
+ if request.method=='GET':
+        filename=request.args.get('filename')
+        datex=int(str(request.args.get('datex')))
+        dates =[]
+        prices=[]
+        base_url=os.getcwd()
+        ds=pd.read_csv(base_url+'\scrape\static\csv\\'+filename+'.csv')
+        df_date=ds.tail(25).loc[:,'Date']
+        df_open=ds.tail(25).loc[:,'Open']
+
+        for date in df_date:
+            dates.append([int(date.split('-')[2])])
+        for open_price in df_open:
+            prices.append(float(open_price))
+
+        svr_lin=SVR(kernel='linear',C=1e3)
+        svr_rbf=SVR(kernel='rbf',C=1e3,gamma=0.1)
+        svr_poly=SVR(kernel='poly',C=1e3,degree=2)
+
+        svr_lin.fit(dates,prices)
+        svr_rbf.fit(dates,prices)
+        svr_poly.fit(dates,prices)
+
+        
+        plt.scatter(dates,svr_rbf.predict(dates),c='blue',label='SVR RBF')
+        plt.scatter(dates,svr_lin.predict(dates),c='red',label='SVR Linear')
+        plt.scatter(dates,svr_poly.predict(dates),color='green',label='SVR Poly')
+        
+        plt.savefig('./scrape/static/'+filename+'dateprice.png')
+        plt.xlabel('Date')
+        plt.ylabel('Price')
+        plt.title('Anylsis ML')
+        db.session.add(data(image=filename+'dateprice.png',name=filename))
+        db.session.commit()
+
+        moy=(svr_rbf.predict([[datex]])[0]+svr_poly.predict([[datex]])[0]+svr_lin.predict([[datex]])[0])/3
+        
+        return redirect(url_for('showcsv',filename=filename+'.csv',moy=moy))
+
+
+@app.route('/uploads/<path:filename>', methods=['GET', 'POST'])
+def download(filename):
+    uploads = 'static\\csv\\'+filename
+    return send_file(uploads,attachment_filename=filename)

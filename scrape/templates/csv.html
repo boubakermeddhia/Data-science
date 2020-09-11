@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<head>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+</head>
+
+<body>
+    <div class="row">
+    <div class="col-sm">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="{{ url_for('listingcsv') }}">Show ALL Documents</a></li>
+              <li class="breadcrumb-item active" aria-current="page">{{ file }}</li>
+            </ol>
+          </nav>
+          <br>
+    <div style="background-color:darkseagreen;border-radius: 5px  ;border: 2px solid black;">
+          <form action="{{ url_for('savecsv') }}" method="GET">
+          <input class="form-control" id="filename" name="filename" value="{{ file }}" type="text" placeholder="{{ file }}" hidden>
+          Operation:<select name="operation" class="form-control">
+                        <option value="add">ADD</option>
+                        <option value="divide">DIVIDE</option>
+                        <option value="multi">MULTI</option>
+                        <option value="sous">MINUS</option>
+                    </select>
+                    <br>
+          Input Column 1:<select name="input1" class="form-control">
+                         {% for int1 in head %}
+                         <option value="{{ int1 }}">{{ int1 }}</option>
+                         {% endfor %}
+                         </select>
+                    <br>
+          Input Column 2:<select name="input2" class="form-control">
+                        {% for int1 in head %}
+                        <option value="{{ int1 }}">{{ int1 }}</option>
+                        {% endfor %}
+                        </select>
+                    <br>
+          New Colums Name :<input name="newcol" class="form-control" type="text" placeholder="Enter the name" required>
+          <br>
+       
+        <center>
+<input type="submit" id ="submit" class="btn btn-primary" value="Save">
+
+<a href="{{ url_for('download', filename=file) }}.csv"><button type="button" class="btn btn-success">Download</button></a>
+
+</center>
+</form>
+
+</div>
+<br>
+<div style="background-color: darkturquoise;border-radius: 5px  ;border: 2px solid black;">
+<form action="{{ url_for('predict') }}" method="GET">
+    <br>
+    <input  class="form-control" id="filename" name="filename" value="{{ file }}" type="text" placeholder="{{ file }}" hidden>
+    
+    <input  class="form-control" placeholder="Please Place your date Here" name="datex"  type="text">
+    <br>
+    <center>
+        <input type="submit" id ="submit" class="btn btn-warning" value="Predict">
+    </center>
+</form>
+</div>
+<div>
+
+    {% if moy %}
+    Prediction is :
+    <input  class="form-control" id="filename" name="filename" value="{{ moy }}" type="text" placeholder="{{ moy }}" disabled>
+    </div>
+    {% endif %}
+
+{% if dict2.values() | length !=0 %}
+<div class="row">
+{% for img in dict2.values() %}
+<div class="col">
+<img src="{{ url_for('static', filename=img) }}"  alt="chart" width="500" height="400">
+</div>
+<br>
+{% endfor %}
+</div>
+{% endif %}
+
+     </div>
+    <div class="col-sm">
+ 
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item active" aria-current="page">Current Details</li>
+            </ol>
+        </nav>
+                <div style="width:100%; height:700px;overflow:auto">
+                    
+                    <table class="table table-sm table-dark" style="width:100%;border: 5px solid black;">
+                        <tr>
+                            {% for header in head %}
+                            <th scope="col">{{ header }}</th>
+                            {% endfor %}
+                            </tr>
+                        {% for dict in form.values() %}
+                <tr>
+                    {% for i in range(head | length) %}
+                    <td>{{ dict[i] }}</td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </div>
+        </table>
+    </div>
+
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+</body>

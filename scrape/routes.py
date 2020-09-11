@@ -121,7 +121,7 @@ def predict():
         dates =[]
         prices=[]
         
-        ds=pd.read_csv(os.path.abspath(os.path.dirname(__file__))+'\static\csv\\'+filename'.csv')
+        ds=pd.read_csv(os.path.abspath(os.path.dirname(__file__))+'\static\csv\\'+filename+'.csv')
         df_date=ds.tail(25).loc[:,'Date']
         df_open=ds.tail(25).loc[:,'Open']
 

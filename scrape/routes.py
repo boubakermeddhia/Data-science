@@ -21,7 +21,7 @@ def allowed_file(filename):
 @app.route("/listingcsv", methods=['GET','POST'])
 def listingcsv():
     
-    file=os.listdir('.\scrape\static\csv')
+    file=os.listdir(os.path.abspath(os.path.dirname(__file__))+'\static\csv')
     return render_template('showcsv.html', file=file)
 @app.route("/showcsv", methods=['GET','POST'])
 def showcsv():
@@ -37,7 +37,7 @@ def showcsv():
                 dict2[i]=str(img[i]).split('=')[1].split(',')[0] 
         dict={}
         
-        ds=pd.read_csv('.\scrape\static\csv\\'+filename)
+        ds=pd.read_csv(os.path.abspath(os.path.dirname(__file__))+'\static\csv\\'+filename)
         header=ds.columns
 
         for i in range(len(ds.values)):
@@ -56,7 +56,7 @@ def savecsv():
         input2=request.args.get('input2')
         newcol=request.args.get('newcol')
         
-        ds=pd.read_csv('.\scrape\static\csv\\'+filename+'.csv')
+        ds=pd.read_csv(os.path.abspath(os.path.dirname(__file__))+'\static\csv\\'+filename+'.csv')
         for i in range(len(ds.loc[:,input1])):
            l.append(ds.loc[:,input1][i])
         for i in range(len(ds.loc[:,input2])):
@@ -74,7 +74,7 @@ def savecsv():
           for i in range(len(l)):
            w.append(l[i]-v[i])
         ds.insert(len(ds.columns),newcol,w) 
-        ds.to_csv('.\scrape\static\csv\\'+filename+'modified.csv',index = False)
+        ds.to_csv(os.path.abspath(os.path.dirname(__file__))+'\static\csv\\'+filename+'modified.csv',index = False)
 
 
         plt.scatter([int(x.split('-')[2]) for x in ds.tail(15).loc[:,'Date']],[float(x) for x in ds.tail(15).loc[:,'High']])
@@ -121,7 +121,7 @@ def predict():
         dates =[]
         prices=[]
         
-        ds=pd.read_csv('.\scrape\static\csv\\'+filename+'.csv')
+        ds=pd.read_csv(os.path.abspath(os.path.dirname(__file__))+'\static\csv\\'+filename'.csv')
         df_date=ds.tail(25).loc[:,'Date']
         df_open=ds.tail(25).loc[:,'Open']
 

@@ -1,4 +1,4 @@
-from scrape import app
+from data import app
 
 if __name__ == '__main__':
     app.run()
